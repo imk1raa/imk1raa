@@ -1,0 +1,166 @@
+import time
+
+class Hashing:
+
+    def __init__(self, size=5):          #הגדרת טבלה
+        self.size = 5
+        self.table = [None] * self.size
+        self.occupied = 0
+
+    def _hash(self, key):       #הגדרת פונקציית גיבוב
+        return key % 5
+
+    def _resize(self):              #במקרה של טבלה מלאה מכפיל אותה בגדול
+        old_table = self.table
+        self.size *= 2
+        self.table = [None] * self.size
+        self.occupied = 0
+
+        for item in old_table:          #מדידת זמן הכנסה 
+            if item is not None:
+                self._insert(item)
+
+    def insert(self, data):             #הכנסת ערך לטבלה
+        for element in data:
+            self._insert(element)
+
+    def _insert(self, key):             #הכנסת מפתח לטבלה
+
+        if self.occupied >= self.size:              
+            self._resize()
+
+        index = self._hash(key)
+        probe_count = 0
+        while self.table[index] is not None:
+            current_key = self.table[index]
+            current_distance = (index - self._hash(current_key)) % self.size
+            new_distance = (index - self._hash(key)) % self.size
+
+            if new_distance < current_distance:
+                self.table[index] = key
+                key = current_key
+            index = (index + 1) % self.size
+            probe_count += 1
+            if probe_count > self.size:
+                raise Exception("הטבלה מלאה")
+        self.table[index] = key
+        self.occupied += 1
+
+    def lookUp(self, key):              #הגדרת חיפוש
+        index = self._hash(key)
+        probe_count = 0
+        while self.table[index] is not None:
+            if self.table[index] == key:
+                return index
+            index = (index + 1) % self.size
+            probe_count += 1
+            if probe_count > self.size:
+                break
+        return -1
+
+    def delete(self, key):                      #הגדרת מחיקה
+        index = self._hash(key)
+        probe_count = 0
+        while self.table[index] is not None:
+            if self.table[index] == key:
+                self.table[index] = None
+                self.occupied -= 1
+                self._rehash_after_deletion(index)
+                return True
+            index = (index + 1) % self.size
+            probe_count += 1
+            if probe_count > self.size:
+                break
+        return False
+
+    def _rehash_after_deletion(self, index):            #הזזת ערך אחורה לאחר מחיקה
+        next_index = (index + 1) % self.size
+        while self.table[next_index] is not None:
+            key = self.table[next_index]
+            self.table[next_index] = None
+            self.occupied -= 1
+            self._insert(key)
+            next_index = (next_index + 1) % self.size
+
+    def printHashTable(self):                                           #הגדרת הדפסה
+        print(f"{'KEY':<10}{'VALUE':^10}{'DIB':^10}")
+        for index, value in enumerate(self.table):
+            if value is not None:
+                ideal_index = self._hash(value)
+                dib = (index - ideal_index) % self.size
+                print(f"{index:<10}{value:^10}{dib:^10}")
+            else:
+                print(f"{'EMPTY':<10}{'EMPTY':^10}{'EMPTY':^10}")
+
+    def loadFactor(self):
+
+        return self.occupied / self.size
+
+
+def read_file(file_path):                           
+    data = []
+    try:
+        with open(file_path, "r") as file:
+            for line in file:
+                data.append(line.strip())
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+    except Exception as e:
+        print(f"Error reading file: {e}")
+    return data
+
+
+def main():
+    print("Welcome to RobinHoodHashing ")
+
+    robinhood_hashing = Hashing(size=5)
+
+    data = read_file("Test.txt")
+    print(f"\nLoaded {len(data)} elements from file.")
+
+    start_time = time.time()
+    robinhood_hashing.insert(data)
+    end_time = time.time()
+    print(f"\nTime taken to insert in Robinhood Hashing: {(end_time - start_time) * 1000:.4f} ms")
+
+    while True:                             # לולאת תפריט עבור פעולות
+        print("\nChoose an operation:")
+        print("1: INSERT")
+        print("2: LOOKUP")
+        print("3: DELETE")
+        print("4: PRINT HASH TABLE")
+        print("5: LOAD FACTOR")
+        print("0: EXIT")
+        try:
+            operation = int(input("Enter operation code: "))
+            if operation == 1:
+                element = int(input("Enter element to insert: "))
+                robinhood_hashing.insert([element])
+            elif operation == 2:
+                element = int(input("Enter element to look up: "))
+                result = robinhood_hashing.lookUp(element)
+                if result != -1:
+                    print(f"Found at index {result}")
+                else:
+                    print("Not found")
+            elif operation == 3:
+                element = int(input("Enter element to delete: "))
+                if robinhood_hashing.delete(element):
+                    print("Deleted successfully.")
+                else:
+                    print("Element not found.")
+            elif operation == 4:
+                robinhood_hashing.printHashTable()  # מדפיס את המיקומים המאוישים והריקים כ-KEY, VALUE ו-DIB
+            elif operation == 5:
+                print(f"Load factor: {robinhood_hashing.loadFactor():.4f}")
+            elif operation == 0:
+                print("Exiting...")
+                break
+            else:
+                print("Invalid operation code.")
+        except ValueError:
+            print("Invalid input. Please enter a valid number.")
+
+
+if __name__ == "__main__":
+    main()
